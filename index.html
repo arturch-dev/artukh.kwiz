@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Бонусний тест | Твій стан тіла</title>
+    
+    <!-- Fonts: Playfair Display + Montserrat -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bgMain: '#F5F2EE',
+                        textMain: '#2F2F2F',
+                        headingMain: '#1F1F1F',
+                        accent: '#7A8F7B',
+                        accentHover: '#657866',
+                    },
+                    fontFamily: {
+                        sans: ['Montserrat', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- intl-tel-input CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Facebook Pixel Code (Stub) -->
+    <script>
+        const PIXEL_ID = 'YOUR_PIXEL_ID'; // ВСТАВ СВІЙ ID ПІКСЕЛЯ
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        if(PIXEL_ID !== 'YOUR_PIXEL_ID') {
+            fbq('init', PIXEL_ID);
+            fbq('track', 'PageView');
+        }
+    </script>
+    <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1"/></noscript>
+
+    <style>
+        body { background-color: #F5F2EE; color: #2F2F2F; overflow-x: hidden; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* intl-tel-input customization */
+        .iti { width: 100%; }
+        .iti__flag-container { border-radius: 0.75rem 0 0 0.75rem; }
+        input[type="tel"] { width: 100%; height: 3.5rem; padding-left: 55px !important; border-radius: 0.75rem; border: 1px solid #D1D5DB; outline: none; transition: border-color 0.2s; }
+        input[type="tel"]:focus { border-color: #7A8F7B; }
+        .error-input { border-color: #EF4444 !important; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Container -->
+    <main id="app-container" class="w-full max-w-2xl bg-white/90 backdrop-blur-md rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden relative min-h-[400px]">
+        <!-- Content will be injected here via JS -->
+    </main>
+
+    <!-- Modal (Lead Form) -->
+    <div id="lead-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div>
+        <div class="bg-white rounded-3xl p-8 w-full max-w-md relative z-10 scale-95 opacity-0 transition-all duration-300" id="modal-content">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700">
+                <i data-lucide="x"></i>
+            </button>
+            <h3 class="font-serif text-2xl font-semibold text-headingMain mb-2 text-center">Куди надіслати доступ?</h3>
+            <p class="text-sm text-gray-500 text-center mb-6">Введіть дані, щоб почати тест та зберегти результати</p>
+            
+            <form id="lead-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ваше ім'я</label>
+                    <input type="text" id="name" required pattern="^[^0-9]+$" class="w-full h-14 px-4 rounded-xl border border-gray-300 focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors placeholder:text-gray-400" placeholder="Наприклад, Анна">
+                    <p id="name-error" class="text-xs text-red-500 mt-1 hidden">Ім'я не може містити цифри</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ваш телефон</label>
+                    <input type="tel" id="phone" required class="w-full">
+                    <p id="phone-error" class="text-xs text-red-500 mt-1 hidden">Невірний формат номера</p>
+                </div>
+                <button type="submit" id="submit-btn" class="w-full bg-accent hover:bg-accentHover text-white font-medium h-14 rounded-xl transition-colors mt-4 flex items-center justify-center gap-2">
+                    <span>Почати тест</span>
+                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
+    <script>
+        lucide.createIcons();
+
+        // --- CONFIGURATION ---
+        const GOOGLE_SCRIPT_URL = 'YOUR_GOOGLE_SCRIPT_URL'; // ВСТАВ ПОСИЛАННЯ НА WEB APP SCRIPT
+        const BOT_LINK = 'YOUR_BOT_LINK'; // ВСТАВ ПОСИЛАННЯ НА ТЕЛЕГРАМ АБО ІНСТАГРАМ
+
+        // --- QUIZ DATA & LOGIC ---
+        let scores = { neck: 0, posture: 0, breath: 0, system: 0 };
+        let currentQuestionIndex = 0;
+
+        const questions = [
+            {
+                q: "Як проходить твій день найчастіше?",
+                options: [
+                    { text: "Багато сиджу і часто згорблююсь", points: { posture: 2 } },
+                    { text: "Багато рухаюсь, але до вечора тіло “забите”", points: { neck: 1, system: 1 } },
+                    { text: "І сиджу, і рухаюсь, але стан все одно нестабільний", points: { posture: 1, system: 1 } },
+                    { text: "Чесно, навіть не задумувалась про це", points: { system: 1 } }
+                ]
+            },
+            {
+                q: "Що ти найчастіше відчуваєш у тілі?",
+                options: [
+                    { text: "Шия і плечі постійно напружені", points: { neck: 2 } },
+                    { text: "Є фонове відчуття втоми навіть без очевидної причини", points: { breath: 2 } },
+                    { text: "Скутість у тілі, ніби “не розкриваюсь”", points: { posture: 2 } },
+                    { text: "Відчуття, що тіло “не моє”", points: { system: 2 } }
+                ]
+            },
+            {
+                q: "Якщо подивитись на себе на фото або збоку — що помічаєш?",
+                options: [
+                    { text: "Плечі йдуть вперед", points: { posture: 2 } },
+                    { text: "Голова висунута вперед", points: { posture: 1, neck: 1 } },
+                    { text: "Обличчя або верх тіла виглядають більш “важкими”, ніж раніше", points: { breath: 2 } },
+                    { text: "Важко пояснити, але виглядаю гірше, ніж відчуваю себе всередині", points: { system: 1 } }
+                ]
+            },
+            {
+                q: "Як ти відчуваєш своє дихання?",
+                options: [
+                    { text: "Відчуваю напругу в шиї під час дихання", points: { breath: 2 } },
+                    { text: "Іноді ніби не вистачає глибокого вдиху", points: { breath: 2 } },
+                    { text: "Дихаю спокійно, без напруги", points: {} },
+                    { text: "Ніколи не звертала на це уваги", points: { system: 1 } }
+                ]
+            },
+            {
+                q: "Що вже пробувала робити для себе?",
+                options: [
+                    { text: "Робила щось, але ефект був дуже короткий", points: { system: 2 } },
+                    { text: "Починала, але швидко кидала", points: { system: 1 } },
+                    { text: "Нічого серйозного ще не пробувала", points: {} },
+                    { text: "Пробувала багато, але стало тільки заплутаніше", points: { system: 2 } }
+                ]
+            },
+            {
+                q: "Як ти відчуваєш тіло в кінці дня?",
+                options: [
+                    { text: "Шия і плечі “забиті”", points: { neck: 2 } },
+                    { text: "Сильна втома і виснаження", points: { breath: 2 } },
+                    { text: "Тіло “складене”, хочеться розпрямитись", points: { posture: 2 } },
+                    { text: "Просто відчуття, що щось не так загалом", points: { system: 1 } }
+                ]
+            },
+            {
+                q: "Що для тебе зараз найважливіше змінити?",
+                options: [
+                    { text: "Прибрати напругу і розслабити тіло", points: { neck: 2 } },
+                    { text: "Повернути енергію і легкість", points: { breath: 2 } },
+                    { text: "Вирівняти поставу і відчувати тіло інакше", points: { posture: 2 } },
+                    { text: "Наче “зібрати себе в цілісність”", points: { system: 2 } }
+                ]
+            }
+        ];
+
+        const resultTexts = {
+            single: {
+                neck: { title: "У тебе домінує напруга в шиї і плечах", text: "Твоє тіло, скоріш за все, постійно знаходиться в перенапруженні, особливо у верхній частині.<br><br>Шия і плечі беруть на себе занадто багато навантаження — і це впливає не тільки на самопочуття, а й на загальний стан тіла та зовнішній вигляд.<br><br><b>Це може проявлятися як:</b><br>• відчуття важкості<br>• скутість<br>• накопичена втома<br>• відчуття, що тіло не розслабляється навіть у спокої<br><br>Часто в такому стані тіло ніби постійно “тримає напругу”, і саме це не дає відчути легкість." },
+                posture: { title: "У тебе домінує порушення постави", text: "Твоє тіло поступово зміщується вперед: плечі, грудний відділ, положення голови.<br>Через це навантаження розподіляється неправильно, тіло швидше втомлюється, а рухи стають менш вільними.<br><br><b>Це може давати:</b><br>• скутість<br>• відчуття “зажатості”<br>• втрату легкості<br>• візуальні зміни у силуеті та зовнішньому вигляді<br><br>Коли постава порушена, тіло працює менш ефективно — навіть якщо ти щось уже робиш для себе." },
+                breath: { title: "У тебе домінує порушене дихання", text: "Скоріш за все, твоє тіло не відновлюється повноцінно через спосіб дихання.<br>Коли дихання поверхневе або напружене, тіло довше залишається в стані стресу і накопичує втому.<br><br><b>Це може проявлятися як:</b><br>• відчуття виснаження<br>• важкість<br>• внутрішня напруга<br>• стан, коли ресурс ніби швидко закінчується<br><br>Навіть якщо це не дуже помітно зовні, дихання сильно впливає на загальне самопочуття і стан тіла." },
+                system: { title: "У тебе домінує системний дисбаланс", text: "У твоєму випадку справа, скоріш за все, не в одному факторі.<br>Постава, дихання і напруга в тілі впливають одне на одне — тому стан відчувається як комплексний.<br><br><b>Саме тому може з’являтися відчуття:</b><br>• “я щось роблю, але цього недостатньо”<br>• “ніби проблема одразу в кількох зонах”<br>• “стан нестабільний і постійно змінюється”<br><br>Коли тіло працює як система, то і зміни найкраще розуміти саме системно." }
+            },
+            mixed: {
+                neck_posture: { title: "У тебе поєднання напруги в шиї та порушення постави", text: "У твоєму випадку тіло не тільки перенапружене, а ще й неправильно розподіляє навантаження.<br>Через це шия, плечі і верх тіла можуть постійно тримати зайву напругу, а тіло — втрачати легкість і свободу руху.<br><br><b>Це поєднання часто дає:</b><br>• втому у верхній частині тіла<br>• скутість<br>• бажання “розпрямитись”<br>• відчуття, що тіло постійно зібране в напрузі" },
+                posture_breath: { title: "У тебе поєднання порушення постави та напруженого дихання", text: "Тіло може бути одночасно “завалене” по поставі і не відновлюватися повноцінно через дихання.<br>Через це стан накопичується не в одній зоні, а одразу на кількох рівнях: і в русі, і в загальному ресурсі.<br><br><b>Це може проявлятися як:</b><br>• втома<br>• важкість<br>• відчуття, що тіло ніби “закрите”<br>• нестача легкості навіть тоді, коли ти відпочила" },
+                neck_breath: { title: "У тебе поєднання напруги в тілі та порушеного дихання", text: "У тебе можуть поєднуватись дві речі: тіло постійно тримає напругу, а дихання не допомагає йому повноцінно відновитись.<br>Через це накопичується виснаження, а стан легкості ніби постійно вислизає.<br><br><b>Це часто дає:</b><br>• втому без явної причини<br>• напругу у верхній частині тіла<br>• відчуття “важкого” стану<br>• складність повністю розслабитись" },
+                posture_system: { title: "У тебе поєднання порушення постави та системного дисбалансу", text: "Постава тут є важливим фактором, але не єдиним.<br>Скоріш за все, є ще інші речі, які впливають на стан тіла в цілому — тому відчуття не зводиться до однієї конкретної причини.<br><br><b>Це може проявлятися як:</b><br>• нестабільний стан<br>• відчуття, що тіло “не зібране”<br>• втома і скутість одночасно<br>• складність зрозуміти, з чого починати" },
+                breath_system: { title: "У тебе поєднання порушеного дихання та системного дисбалансу", text: "Дихання тут, скоріш за все, відіграє важливу роль, але стан тіла не зводиться тільки до нього.<br>Є загальна системна перевтома або розбалансованість, яка накопичується і впливає на ресурс, напругу і відчуття себе в тілі.<br><br><b>Це може проявлятися як:</b><br>• фонове виснаження<br>• важкість<br>• нестача енергії<br>• відчуття, що тіло не відновлюється повноцінно" },
+                neck_system: { title: "У тебе поєднання напруги в шиї та системного дисбалансу", text: "Напруга в шиї і плечах у тебе відчутна, але, скоріш за все, вона не єдина причина стану.<br>Є ще загальний системний фактор, через який тіло повільніше відновлюється і довше тримає накопичену втому.<br><br><b>Це може проявлятися як:</b><br>• напруга у верхній частині тіла<br>• загальна втома<br>• відчуття, що тіло “перевантажене”<br>• складність повернути легкість навіть після відпочинку" }
+            }
+        };
+
+        const app = document.getElementById('app-container');
+
+        // Render Start Screen (Тепер викликає модалку замість тесту)
+        function renderStart() {
+            app.innerHTML = `
+                <div class="p-8 md:p-12 text-center fade-in">
+                    <div class="w-16 h-16 bg-[#E8E1D9] rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i data-lucide="sparkles" class="text-accent w-8 h-8"></i>
+                    </div>
+                    <h1 class="font-serif text-3xl md:text-4xl text-headingMain font-semibold mb-4">Пройди бонусний тест</h1>
+                    <p class="text-textMain text-base md:text-lg mb-4 leading-relaxed">
+                        Ти вже заповнила анкету — а тепер можеш пройти короткий тест і попередньо зрозуміти, що саме у твоєму тілі найбільше впливає на стан, напругу, втому і зовнішній вигляд.
+                    </p>
+                    <p class="text-sm text-gray-500 mb-8 italic">
+                        Цей тест не замінює персональну діагностику, але допоможе побачити загальну картину вже зараз.
+                    </p>
+                    <button onclick="openModal()" class="w-full md:w-auto px-10 py-4 bg-accent hover:bg-accentHover text-white rounded-2xl font-medium text-lg transition-all shadow-lg shadow-accent/20">
+                        Почати тест
+                    </button>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function renderQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                calculateResult();
+                return;
+            }
+
+            const qData = questions[currentQuestionIndex];
+            const progress = ((currentQuestionIndex) / questions.length) * 100;
+
+            let optionsHtml = qData.options.map((opt, idx) => `
+                <button onclick='handleAnswer(${JSON.stringify(opt.points)})' class="w-full text-left p-5 rounded-2xl border border-gray-200 hover:border-accent hover:bg-[#F9F8F6] transition-all bg-white shadow-sm text-textMain text-sm md:text-base font-medium">
+                    ${opt.text}
+                </button>
+            `).join('');
+
+            app.innerHTML = `
+                <div class="fade-in">
+                    <div class="w-full h-1.5 bg-gray-100">
+                        <div class="h-full bg-accent transition-all duration-500" style="width: ${progress}%"></div>
+                    </div>
+                    <div class="p-8 md:p-12">
+                        <p class="text-xs font-semibold text-accent mb-3 uppercase tracking-wider">Питання ${currentQuestionIndex + 1} з ${questions.length}</p>
+                        <h2 class="font-serif text-2xl text-headingMain font-semibold mb-8">${qData.q}</h2>
+                        <div class="space-y-3">
+                            ${optionsHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleAnswer(points) {
+            for (let key in points) {
+                scores[key] += points[key];
+            }
+            currentQuestionIndex++;
+            renderQuestion();
+        }
+
+        function calculateResult() {
+            let validKeys = Object.keys(scores);
+            let tempScores = { ...scores };
+            
+            if (tempScores.system < 5) {
+                tempScores.system = -1; 
+            }
+
+            let sorted = Object.keys(tempScores).sort((a, b) => tempScores[b] - tempScores[a]);
+            let top1 = sorted[0];
+            let top2 = sorted[1];
+
+            if (scores.system < 5) {
+                sorted = sorted.filter(k => k !== 'system');
+                top1 = sorted[0];
+                top2 = sorted[1];
+            }
+
+            let diff = scores[top1] - scores[top2];
+            let finalResultData = null;
+
+            if (diff <= 2) {
+                let pair = [top1, top2];
+                if (pair.includes('neck') && pair.includes('posture')) finalResultData = resultTexts.mixed.neck_posture;
+                else if (pair.includes('posture') && pair.includes('breath')) finalResultData = resultTexts.mixed.posture_breath;
+                else if (pair.includes('neck') && pair.includes('breath')) finalResultData = resultTexts.mixed.neck_breath;
+                else if (pair.includes('posture') && pair.includes('system')) finalResultData = resultTexts.mixed.posture_system;
+                else if (pair.includes('breath') && pair.includes('system')) finalResultData = resultTexts.mixed.breath_system;
+                else if (pair.includes('neck') && pair.includes('system')) finalResultData = resultTexts.mixed.neck_system;
+                else finalResultData = resultTexts.single[top1];
+            } else {
+                finalResultData = resultTexts.single[top1];
+            }
+
+            renderFinalScreen(finalResultData);
+        }
+
+        // Final Screen: Кнопка "Підписатися" тепер веде напряму на BOT_LINK
+        function renderFinalScreen(data) {
+            app.innerHTML = `
+                <div class="fade-in">
+                    <div class="w-full h-1.5 bg-accent"></div>
+                    <div class="p-8 md:p-12">
+                        <div class="inline-block px-3 py-1 bg-[#E8E1D9] text-accent text-xs font-semibold rounded-full mb-4">Твій результат</div>
+                        <h2 class="font-serif text-2xl md:text-3xl text-headingMain font-semibold mb-6">${data.title}</h2>
+                        <div class="text-textMain text-sm md:text-base leading-relaxed space-y-4 mb-8 bg-[#F9F8F6] p-6 rounded-2xl">
+                            ${data.text}
+                        </div>
+                        
+                        <div class="border-t border-gray-200 pt-8 mt-4 text-center">
+                            <h3 class="font-serif text-xl font-semibold mb-3">Тепер ти бачиш загальну картину</h3>
+                            <p class="text-sm text-gray-600 mb-4">
+                                Пам'ятай, цей результат — не діагноз, а перше розуміння того, що може найбільше впливати на твій стан зараз.<br>
+                                На діагностиці ми розберемо детально твою ситуацію та разом знайдемо рішення.
+                            </p>
+                            <p class="text-sm text-headingMain font-medium mb-6">
+                                А поки чекаєш поки я проаналізую твою анкету і зв'яжусь з тобою, підписуйся на мене, щоб не загубити.
+                            </p>
+                            <button onclick="window.location.href=BOT_LINK" class="w-full md:w-auto px-12 py-4 bg-accent hover:bg-accentHover text-white rounded-2xl font-medium text-lg transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-2 mx-auto">
+                                Підписатися
+                                <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        // --- LEAD FORM & API LOGIC ---
+
+        const modal = document.getElementById('lead-modal');
+        const modalContent = document.getElementById('modal-content');
+        let iti;
+
+        function openModal() {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            
+            if(PIXEL_ID !== 'YOUR_PIXEL_ID') {
+                fbq('track', 'InitiateCheckout');
+            }
+
+            // Init intl-tel-input з обмеженнями по країнам
+            if (!iti) {
+                const phoneInput = document.querySelector("#phone");
+                iti = window.intlTelInput(phoneInput, {
+                    initialCountry: "auto",
+                    // Тільки європейські країни (без ru та by)
+                    onlyCountries: ['al', 'ad', 'at', 'be', 'ba', 'bg', 'hr', 'cy', 'cz', 'dk', 'ee', 'fi', 'fr', 'de', 'gr', 'hu', 'is', 'ie', 'it', 'lv', 'li', 'lt', 'lu', 'mt', 'md', 'mc', 'me', 'nl', 'mk', 'no', 'pl', 'pt', 'ro', 'sm', 'rs', 'sk', 'si', 'es', 'se', 'ch', 'ua', 'gb', 'va'],
+                    geoIpLookup: function(success, failure) {
+                        fetch("https://get.geojs.io/v1/ip/country.json")
+                            .then(res => res.json())
+                            .then(data => {
+                                let countryCode = data.country.toLowerCase();
+                                // Якщо IP з рф або рб - ставимо Україну
+                                if (countryCode === 'ru' || countryCode === 'by') {
+                                    countryCode = 'ua';
+                                }
+                                success(countryCode);
+                            })
+                            .catch(() => success("ua"));
+                    },
+                    utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
+                });
+            }
+        }
+
+        function closeModal() {
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function getUTMs() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                source: params.get('utm_source') || '',
+                medium: params.get('utm_medium') || '',
+                campaign: params.get('utm_campaign') || '',
+                content: params.get('utm_content') || '',
+                term: params.get('utm_term') || ''
+            };
+        }
+
+        // Обробка форми
+        document.getElementById('lead-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const nameInput = document.getElementById('name');
+            const phoneInput = document.getElementById('phone');
+            const nameError = document.getElementById('name-error');
+            const phoneError = document.getElementById('phone-error');
+            const btn = document.getElementById('submit-btn');
+
+            let isValid = true;
+
+            // Перевірка імені (без цифр)
+            if (/\d/.test(nameInput.value)) {
+                nameInput.classList.add('error-input');
+                nameError.classList.remove('hidden');
+                isValid = false;
+            } else {
+                nameInput.classList.remove('error-input');
+                nameError.classList.add('hidden');
+            }
+
+            // Перевірка телефону
+            if (!iti.isValidNumber()) {
+                phoneInput.classList.add('error-input');
+                phoneError.classList.remove('hidden');
+                isValid = false;
+            } else {
+                phoneInput.classList.remove('error-input');
+                phoneError.classList.add('hidden');
+            }
+
+            // Якщо є помилки - зупиняємо
+            if (!isValid) return;
+            
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Відправка...`;
+            btn.disabled = true;
+            lucide.createIcons();
+
+            const utms = getUTMs();
+            const payload = {
+                date: new Date().toISOString(),
+                name: nameInput.value,
+                phone: iti.getNumber(),
+                utm_source: utms.source,
+                utm_medium: utms.medium,
+                utm_campaign: utms.campaign,
+                utm_content: utms.content,
+                utm_term: utms.term
+            };
+
+            // Відправка даних у таблицю у фоновому режимі (щоб не гальмувати користувача)
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            }).catch(err => console.error("Error sending lead", err));
+
+            if(PIXEL_ID !== 'YOUR_PIXEL_ID') {
+                fbq('track', 'Lead');
+            }
+
+            // Закриваємо модалку та запускаємо перший екран квізу
+            closeModal();
+            renderQuestion();
+        });
+
+        // Initialize App
+        renderStart();
+
+    </script>
+</body>
+</html>
