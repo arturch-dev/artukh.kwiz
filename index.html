@@ -38,9 +38,9 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Facebook Pixel Code (Stub) -->
+    <!-- Facebook Pixel Code -->
     <script>
-        const PIXEL_ID = 'YOUR_PIXEL_ID'; // ВСТАВ СВІЙ ID ПІКСЕЛЯ
+        const PIXEL_ID = 'YOUR_PIXEL_ID'; // ВСТАВ СВІЙ ID ПІКСЕЛЯ АБО ЗАЛИШ ЯК Є
         !function(f,b,e,v,n,t,s)
         {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
         n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -88,7 +88,7 @@
             <form id="lead-form" class="space-y-4">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Ваше ім'я</label>
-                    <input type="text" id="name" required pattern="^[^0-9]+$" class="w-full h-14 px-4 rounded-xl border border-gray-300 focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors placeholder:text-gray-400" placeholder="Наприклад, Анна">
+                    <input type="text" id="name" required class="w-full h-14 px-4 rounded-xl border border-gray-300 focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors placeholder:text-gray-400" placeholder="Наприклад, Анна">
                     <p id="name-error" class="text-xs text-red-500 mt-1 hidden">Ім'я не може містити цифри</p>
                 </div>
                 <div>
@@ -109,14 +109,22 @@
     <script>
         lucide.createIcons();
 
-        // --- CONFIGURATION ---
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQePCGO-t3QO_X82IXW16A7_QeTGrpFvAD9g7A7V-3oI6Oe8KID5VJ2DqGMkDryFAd/exec'; // ВСТАВ ПОСИЛАННЯ НА WEB APP SCRIPT
-        const BOT_LINK = 'https://www.instagram.com/kseniya_artukh'; // ВСТАВ ПОСИЛАННЯ НА ТЕЛЕГРАМ АБО ІНСТАГРАМ
+        // ==========================================
+        // НАЛАШТУВАННЯ (ОБОВ'ЯЗКОВО ВСТАВ СВОЇ ДАНІ)
+        // ==========================================
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3xHCWSGLB1ThIq6oFzrTGxEcxDrGIFVAKbWPKQ03wRMbwJX5ppEiF4sC7a83T8w_Y/exec'; // URL ВІД GOOGLE APPS SCRIPT
+        const BOT_LINK = 'https://www.instagram.com/kseniya_artukh'; // КУДИ ВЕДЕ КНОПКА "ПІДПИСАТИСЯ" В КІНЦІ
 
-        // --- QUIZ DATA & LOGIC ---
+        // ==========================================
+        // ГЛОБАЛЬНІ ЗМІННІ
+        // ==========================================
+        let currentLeadId = null; // Для зв'язку ліда з його результатом
         let scores = { neck: 0, posture: 0, breath: 0, system: 0 };
         let currentQuestionIndex = 0;
 
+        // ==========================================
+        // ДАНІ КВІЗУ
+        // ==========================================
         const questions = [
             {
                 q: "Як проходить твій день найчастіше?",
@@ -202,7 +210,9 @@
 
         const app = document.getElementById('app-container');
 
-        // Render Start Screen (Тепер викликає модалку замість тесту)
+        // ==========================================
+        // ЛОГІКА ІНТЕРФЕЙСУ
+        // ==========================================
         function renderStart() {
             app.innerHTML = `
                 <div class="p-8 md:p-12 text-center fade-in">
@@ -233,7 +243,7 @@
             const qData = questions[currentQuestionIndex];
             const progress = ((currentQuestionIndex) / questions.length) * 100;
 
-            let optionsHtml = qData.options.map((opt, idx) => `
+            let optionsHtml = qData.options.map((opt) => `
                 <button onclick='handleAnswer(${JSON.stringify(opt.points)})' class="w-full text-left p-5 rounded-2xl border border-gray-200 hover:border-accent hover:bg-[#F9F8F6] transition-all bg-white shadow-sm text-textMain text-sm md:text-base font-medium">
                     ${opt.text}
                 </button>
@@ -264,12 +274,9 @@
         }
 
         function calculateResult() {
-            let validKeys = Object.keys(scores);
             let tempScores = { ...scores };
             
-            if (tempScores.system < 5) {
-                tempScores.system = -1; 
-            }
+            if (tempScores.system < 5) tempScores.system = -1; 
 
             let sorted = Object.keys(tempScores).sort((a, b) => tempScores[b] - tempScores[a]);
             let top1 = sorted[0];
@@ -297,10 +304,22 @@
                 finalResultData = resultTexts.single[top1];
             }
 
+            // --- КРОК 2: ФОНОВА ВІДПРАВКА РЕЗУЛЬТАТУ В ТАБЛИЦЮ ---
+            if (currentLeadId && GOOGLE_SCRIPT_URL !== 'YOUR_GOOGLE_SCRIPT_URL') {
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'update',
+                        lead_id: currentLeadId,
+                        result: finalResultData.title
+                    })
+                }).catch(err => console.error("Помилка запису результату", err));
+            }
+
             renderFinalScreen(finalResultData);
         }
 
-        // Final Screen: Кнопка "Підписатися" тепер веде напряму на BOT_LINK
         function renderFinalScreen(data) {
             app.innerHTML = `
                 <div class="fade-in">
@@ -332,8 +351,9 @@
             lucide.createIcons();
         }
 
-        // --- LEAD FORM & API LOGIC ---
-
+        // ==========================================
+        // МОДАЛКА, ВАЛІДАЦІЯ ТА ЗБІР ЛІДІВ
+        // ==========================================
         const modal = document.getElementById('lead-modal');
         const modalContent = document.getElementById('modal-content');
         let iti;
@@ -350,19 +370,17 @@
                 fbq('track', 'InitiateCheckout');
             }
 
-            // Init intl-tel-input з обмеженнями по країнам
+            // Ініціалізація телефону з обмеженнями країн
             if (!iti) {
                 const phoneInput = document.querySelector("#phone");
                 iti = window.intlTelInput(phoneInput, {
                     initialCountry: "auto",
-                    // Тільки європейські країни (без ru та by)
                     onlyCountries: ['al', 'ad', 'at', 'be', 'ba', 'bg', 'hr', 'cy', 'cz', 'dk', 'ee', 'fi', 'fr', 'de', 'gr', 'hu', 'is', 'ie', 'it', 'lv', 'li', 'lt', 'lu', 'mt', 'md', 'mc', 'me', 'nl', 'mk', 'no', 'pl', 'pt', 'ro', 'sm', 'rs', 'sk', 'si', 'es', 'se', 'ch', 'ua', 'gb', 'va'],
                     geoIpLookup: function(success, failure) {
                         fetch("https://get.geojs.io/v1/ip/country.json")
                             .then(res => res.json())
                             .then(data => {
                                 let countryCode = data.country.toLowerCase();
-                                // Якщо IP з рф або рб - ставимо Україну
                                 if (countryCode === 'ru' || countryCode === 'by') {
                                     countryCode = 'ua';
                                 }
@@ -395,7 +413,6 @@
             };
         }
 
-        // Обробка форми
         document.getElementById('lead-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -407,7 +424,7 @@
 
             let isValid = true;
 
-            // Перевірка імені (без цифр)
+            // Перевірка імені на цифри
             if (/\d/.test(nameInput.value)) {
                 nameInput.classList.add('error-input');
                 nameError.classList.remove('hidden');
@@ -427,15 +444,20 @@
                 phoneError.classList.add('hidden');
             }
 
-            // Якщо є помилки - зупиняємо
             if (!isValid) return;
             
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Відправка...`;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Завантаження...`;
             btn.disabled = true;
             lucide.createIcons();
 
             const utms = getUTMs();
+            
+            // Генеруємо унікальний ID для цього ліда
+            currentLeadId = Date.now().toString() + Math.random().toString(36).substring(2, 7);
+
             const payload = {
+                action: 'create',
+                lead_id: currentLeadId,
                 date: new Date().toISOString(),
                 name: nameInput.value,
                 phone: iti.getNumber(),
@@ -446,23 +468,25 @@
                 utm_term: utms.term
             };
 
-            // Відправка даних у таблицю у фоновому режимі (щоб не гальмувати користувача)
-            fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            }).catch(err => console.error("Error sending lead", err));
+            // --- КРОК 1: Відправляємо контакти відразу ---
+            if (GOOGLE_SCRIPT_URL !== 'YOUR_GOOGLE_SCRIPT_URL') {
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                }).catch(err => console.error("Error sending lead", err));
+            }
 
             if(PIXEL_ID !== 'YOUR_PIXEL_ID') {
                 fbq('track', 'Lead');
             }
 
-            // Закриваємо модалку та запускаємо перший екран квізу
+            // Закриваємо модалку та починаємо квіз
             closeModal();
             renderQuestion();
         });
 
-        // Initialize App
+        // Запуск
         renderStart();
 
     </script>
